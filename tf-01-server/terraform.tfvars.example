@@ -1,0 +1,7 @@
+hcloud_token        = "" # Hetzner cloud API token
+tailscale_key       = "" # Tailscale Auth key
+server_name         = "" # Hostname for server
+smtp_host           = "" # SMTP server host including port
+smtp_user           = "" # SMTP username
+smtp_password       = "" # SMTP password
+notifications_email = "" # Email address for system notifications

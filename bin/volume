@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+show_help() {
+  echo "Usage: bin/volume <command> <hostname> <volume> [path]"
+  echo "Commands: download, restore"
+}
+
+if [ $# -lt 3 ]; then
+  show_help
+  exit 1
+fi
+
+command="$1"
+host="$2"
+volume="$3"
+
+export DOCKER_HOST="ssh://$host"
+DOCKER_CREATE_CMD="docker create --name container -v \"$volume\":/data alpine"
+
+# Function to stop containers using the specified volume
+stop_containers_using_volume() {
+  local volume_name="$1"
+  local containers_to_stop=$(docker ps -aq --filter "volume=$volume_name")
+  
+  if [ -n "$containers_to_stop" ]; then
+    echo "Stopping containers using volume: $volume_name"
+    docker stop $containers_to_stop
+  fi
+}
+
+# Function to start containers using the specified volume
+start_containers_using_volume() {
+  local volume_name="$1"
+  local containers_to_start=$(docker ps -aq --filter "volume=$volume_name" --filter "status=exited")
+  
+  if [ -n "$containers_to_start" ]; then
+    echo "Starting containers using volume: $volume_name"
+    docker start $containers_to_start
+  fi
+}
+
+case "$command" in
+  "download")
+    stop_containers_using_volume "$volume"
+    eval "$DOCKER_CREATE_CMD"
+
+    dir="$(realpath "${4:-.}")" 
+    current_time=$(date +%Y-%m-%dT%H:%M:%S)
+    archive="$dir/$volume"_"$current_time.tar"
+    docker cp --archive container:/data/ - > "$archive"
+    echo "Created archive: $archive"
+
+    docker rm container
+    start_containers_using_volume "$volume"
+    ;;
+  "restore")
+    if [ $# -ne 4 ]; then
+      echo "Usage: bin/volume restore <hostname> <volume> <path/to/file.tar>"
+      exit 1
+    fi
+
+    restore_file="$4"
+
+    stop_containers_using_volume "$volume"
+    eval "$DOCKER_CREATE_CMD"
+
+    docker cp - container:/ < "$restore_file"
+    docker rm container
+    start_containers_using_volume "$volume"
+    ;;
+  *)
+    echo "Unknown command: $command"
+    show_help
+    exit 1
+    ;;
+esac

@@ -1,0 +1,5 @@
+acme_email            = "" # ACME registration email
+cloudflare_api_email  = "" # Cloudflare account
+cloudflare_api_token  = "" # Cloudflare API token with Zone.DNS permissions
+domain                = "" # Public domain for hosting services
+adguardhome_subdomain = "" # Subdomain used for AdGuard Home

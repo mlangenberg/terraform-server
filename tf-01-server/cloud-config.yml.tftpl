@@ -1,0 +1,57 @@
+#cloud-config
+write_files:
+  - path: /etc/apt/apt.conf.d/99local
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+        "$${distro_id}:$${distro_codename}-updates";
+      }
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "01:00";
+      Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+      Unattended-Upgrade::Mail "${notifications_email}";
+      Unattended-Upgrade::Sender "${notifications_email}";
+      Unattended-Upgrade::MailReport "on-change";
+  - path: /etc/ssmtp/ssmtp.conf
+    content: |
+      MailHub=${smtp_host}
+      AuthUser=${smtp_user}
+      AuthPass=${smtp_password}
+      AuthMethod=LOGIN
+      UseSTARTTLS=YES
+      UseTLS=YES
+      FromLineOverride=YES
+apt:
+  sources:
+    tailscale.list:
+      source: deb https://pkgs.tailscale.com/stable/ubuntu jammy main
+      keyid: 2596A99EAAB33821893C0A79458CA832957F5868
+    fish.list:
+      source: "ppa:fish-shell/release-3"
+    docker.list:
+     source: deb https://download.docker.com/linux/ubuntu jammy stable
+     keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+packages:
+  - ssmtp
+  - tailscale
+  - fish
+  - docker-ce
+  - docker-ce-cli
+ssh_pwauth: false
+users:
+  - name: mlangenberg
+    shell: /usr/bin/fish
+    groups: users, admin, docker
+    lock_passwd: true
+    sudo: ALL=(ALL) NOPASSWD:ALL
+runcmd:
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow in on tailscale0
+  - ufw allow 41641/udp
+  - ufw allow http
+  - ufw allow https
+  - ufw enable
+  - tailscale up --ssh --authkey ${tailscale_key}
