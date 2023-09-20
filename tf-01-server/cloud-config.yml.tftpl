@@ -4,6 +4,8 @@ write_files:
     content: |
       Unattended-Upgrade::Allowed-Origins {
         "$${distro_id}:$${distro_codename}-updates";
+        "Tailscale:*";
+        "Docker:$${distro_codename}";
       }
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-Time "01:00";
